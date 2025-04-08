@@ -1,0 +1,48 @@
+<style>
+    #search-results {
+        max-height: 400px; /* กำหนดความสูงของพื้นที่เลื่อน */
+        overflow-y: auto;  /* เปิด Scroll Bar ในแนวตั้ง */
+        border: 1px solid #ddd; /* เส้นขอบรอบตาราง */
+        padding: 10px; /* ระยะห่างภายใน */
+    }
+    table {
+        border-collapse: collapse; /* รวมเส้นขอบ */
+        width: 100%; /* ขยายเต็มพื้นที่ */
+    }
+    th, td {
+        border: 1px solid #ddd; /* เส้นขอบ */
+        padding: 8px; /* ระยะห่างในช่อง */
+    }
+    th {
+        background-color: #f2f2f2; /* สีพื้นหลังหัวข้อ */
+        text-align: left; /* จัดข้อความชิดซ้าย */
+    }
+    tr:hover {
+        background-color: #f1f1f1; /* สีพื้นหลังเมื่อชี้เมาส์ */
+    }
+    thead th {
+        position: sticky; /* ทำให้หัวตารางค้าง */
+        top: 0; /* ระยะห่างจากด้านบน */
+        z-index: 1020; /* ลำดับการแสดงผล */
+        background-color: #f8f9fa; /* สีพื้นหลัง */
+        border: 1px solid #ddd; /* เส้นขอบ */
+    }
+    tbody td {
+        border: 1px solid #ddd; /* เส้นขอบสำหรับข้อมูลในตาราง */
+    }
+   .pagination {
+    display: flex; /* ตรวจสอบให้แน่ใจว่าใช้งาน Flexbox */
+    justify-content: center !important; /* บังคับให้อยู่กึ่งกลาง */
+    align-items: center; /* จัดตำแหน่งในแนวแกนตั้ง */
+}
+p.update-text {
+    color: red !important;
+    font-size: 0.7em !important;
+    margin: 0 !important;
+}
+
+.pagination li {
+    text-align: center;
+}
+
+</style>
