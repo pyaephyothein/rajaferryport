@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหาข้อมูลเส้นทาง</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css">
+    <style>
+        .sortable th {
+            cursor: pointer;
+        }
+        .asc::after {
+            content: ' ↑';
+        }
+        .desc::after {
+            content: ' ↓';
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br>
+        <div class="row">
+            <div class="col">
+                <center>
+                    <form id="search-form" onsubmit="handleFormSubmit(this)">
+                        <div class="form-group mb-2">
+                            <center>
+                                <img src="https://www.rajaferryport.com/storage/images/logo-210529124823.png?241225083948" width="300">
+                            </center>
+                            <br>
+                            <h4 for="searchtext">ค้นหาข้อมูลเส้นทาง </h4>
+                        </div>
+                        <p class="update-text">ข้อมูลอัปเดตล่าสุด: <span id="update-text"></span></p>
+                        <p>
+                        <div class="form-group mx-sm-3 mb-3">
+                            <input type="text" class="form-control col-sm-3" id="searchtext" name="searchtext" placeholder="ต้นทาง"><br>
+                            <input type="text" class="form-control col-sm-3" id="searchtext2" name="searchtext2" placeholder="ปลายทาง"><br>
+                        </div>
+                        <p>
+                        <button type="submit" class="btn btn-primary mb-2">Search</button>
+                        <span id="resp-spinner5" class="spinner-grow spinner-grow-sm text-danger d-none" role="status" aria-hidden="true"></span>
+                        <span id="resp-spinner6" class="spinner-grow spinner-grow-sm text-warning d-none" role="status" aria-hidden="true"></span>
+                        <span id="resp-spinner7" class="spinner-grow spinner-grow-sm text-info d-none" role="status" aria-hidden="true"></span>
+                    </form>
+                </center>
+            </div>
+        </div>
+        <div class="row">
+            <div id="search-results" class="table-responsive">
+                <p id="result-count" style="display: inline-block;">ผลการค้นหาทั้งหมด: <strong>0</strong> รายการ</p>
+                <div style="float: right;">
+                    <label for="rowsPerPageSelect">แสดงข้อมูลต่อหน้า:</label>
+                    <select id="rowsPerPageSelect" class="form-control-sm" onchange="changeRowsPerPage(this.value)">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="all">ทั้งหมด</option>
+                    </select>
+                </div>
+                <div id="results-table" class="mt-3"></div>
+            </div>
+            <div class="d-flex justify-content-center mt-3">
+                <div id="pagination" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"></script>
+
+    <script>
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let dataArray = [];
+
+    function preventFormSubmit() {
+        var forms = document.querySelectorAll('form');
+        for (var i = 0; i < forms.length; i++) {
+            forms[i].addEventListener('submit', function(event) {
+                event.preventDefault();
+            });
+        }
+    }
+
+    window.addEventListener("load", function() {
+        preventFormSubmit();
+        updateCurrentDate(); // Call function to update the date on load
+    });
+
+    function handleFormSubmit(formObject) {
+        const searchText = document.getElementById('searchtext').value.trim();
+        const searchText2 = document.getElementById('searchtext2').value.trim();
+
+        document.getElementById('resp-spinner5').classList.remove("d-none");
+        document.getElementById('resp-spinner6').classList.remove("d-none");
+        document.getElementById('resp-spinner7').classList.remove("d-none");
+
+        google.script.run.withSuccessHandler(createTable).processForm(formObject);
+        document.getElementById("search-form").reset();
+    }
+
+    function createTable(data) {
+        document.getElementById('resp-spinner5').classList.add("d-none");
+        document.getElementById('resp-spinner6').classList.add("d-none");
+        document.getElementById('resp-spinner7').classList.add("d-none");
+
+        dataArray = data;
+        renderTable(currentPage);
+    }
+
+    function renderTable(page) {
+        const startIndex = (page - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedData = dataArray.slice(startIndex, endIndex);
+
+        document.getElementById('result-count').innerHTML = `ผลการค้นหาทั้งหมด: <strong>${dataArray.length}</strong> รายการ`;
+
+        let result = "";
+        if (paginatedData.length > 0) {
+            result = "<table class='table table-sm table-striped sortable' id='dtable' style='font-size:0.8em'>" +
+                "<thead style='white-space: nowrap'>" +
+                "<tr>" +
+                "<th onclick='sortTable(0)'>ต้นทาง</th>" +
+                "<th onclick='sortTable(1)'>ปลายทาง</th>" +
+                "<th onclick='sortTable(2)'>รถขาเข้า<br>ออกเดินทาง</th>" +
+                "<th onclick='sortTable(3)'>รถขาเข้า<br>ถึงปลายทาง</th>" +
+                "<th onclick='sortTable(4)'>เรือออกท่า</th>" +
+                "<th onclick='sortTable(5)'>เรือเทียบท่า</th>" +
+                "<th onclick='sortTable(6)'>รถขาออก<br>ออกเดินทาง</th>" +
+                "<th onclick='sortTable(7)'>รถขาออก<br>ถึงปลายทาง</th>" +
+                "<th onclick='sortTable(8)'>ราคาขาย<br>ลูกค้า(บาท)</th>" +
+                "<th onclick='sortTable(9)'>Cut-Off<br>(ชั่วโมง)</th>" +
+                "<th onclick='sortTable(10)'>ผู้ให้บริการ</th>" +
+                "<th onclick='sortTable(12)'>Note</th>" +
+                "</tr>" +
+                "</thead><tbody>";
+
+            paginatedData.forEach(row => {
+                result += "<tr>" + row.map(cell => `<td>${cell}</td>`).join('') + "</tr>";
+            });
+
+            result += "</tbody></table>";
+        } else {
+            result = `<p>ไม่พบข้อมูลที่ค้นหา</p>`;
+        }
+
+        document.getElementById('results-table').innerHTML = result;
+        renderPagination(page);
+    }
+
+    function renderPagination(page) {
+        const totalPages = Math.ceil(dataArray.length / rowsPerPage);
+        let pagination = `<nav><ul class="pagination justify-content-center">`;
+
+        if (page > 1) {
+            pagination += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${page - 1})">ก่อนหน้า</a></li>`;
+        }
+
+        for (let i = 1; i <= totalPages; i++) {
+            pagination += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})">${i}</a></li>`;
+        }
+
+        if (page < totalPages) {
+            pagination += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${page + 1})">ถัดไป</a></li>`;
+        }
+
+        pagination += `</ul></nav>`;
+        document.getElementById('pagination').innerHTML = pagination;
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        renderTable(page);
+    }
+
+    function sortTable(columnIndex) {
+        let table = document.getElementById("dtable");
+        let rows = Array.from(table.rows).slice(1);
+        let isAscending = sortDirection[columnIndex] === 'asc';
+
+        rows.sort((rowA, rowB) => {
+            let cellA = rowA.cells[columnIndex].textContent.trim();
+            let cellB = rowB.cells[columnIndex].textContent.trim();
+            return cellA.localeCompare(cellB, 'th', { numeric: true }) * (isAscending ? 1 : -1);
+        });
+
+        rows.forEach(row => table.appendChild(row));
+        sortDirection[columnIndex] = isAscending ? 'desc' : 'asc';
+
+        table.querySelectorAll("th").forEach((th, index) => {
+            th.classList.remove('asc', 'desc');
+            if (index === columnIndex) {
+                th.classList.add(isAscending ? 'desc' : 'asc');
+            }
+        });
+    }
+
+    function changeRowsPerPage(value) {
+        rowsPerPage = (value === 'all') ? dataArray.length : parseInt(value, 10);
+        currentPage = 1;
+        renderTable(currentPage);
+    }
+
+    let sortDirection = [];
+
+    
+    function updateCurrentDate() {
+        const date = new Date();
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const day = date.getDate();
+        const month = thaiMonths[date.getMonth()];
+        const year = date.getFullYear() + 543; 
+
+        const fullDate = `${day} ${month} ${year}`;
+        document.getElementById("update-text").textContent = fullDate;
+    }
+    </script>
+</body>
+</html>
